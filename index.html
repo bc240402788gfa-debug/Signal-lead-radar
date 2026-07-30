@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="dark" />
+<title>Signal — Lead Radar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <div class="app-header">
+      <div class="wordmark"><span class="blip" aria-hidden="true"></span>SIGNAL</div>
+      <div class="tagline">Cold-outreach radar for freelance data analysts</div>
+    </div>
+
+    <div class="command-bar">
+      <input id="locationInput" class="field" type="text" placeholder="City or area — e.g. Lahore, Pakistan" aria-label="Location" autocomplete="off" />
+      <select id="radiusSelect" class="field" aria-label="Search radius">
+        <option value="2">2 km</option>
+        <option value="5">5 km</option>
+        <option value="8" selected>8 km</option>
+        <option value="15">15 km</option>
+        <option value="25">25 km</option>
+        <option value="40">40 km</option>
+      </select>
+      <button id="scanBtn" class="btn-primary">Scan</button>
+    </div>
+
+    <div class="chip-row" id="chipRow"></div>
+
+    <div class="status-line" id="statusLine" aria-live="polite">
+      <span id="statusText">No scan yet.</span>
+      <button id="exportBtn" class="link-btn" disabled>Export CSV</button>
+    </div>
+
+    <div id="map"></div>
+
+    <details class="about-score">
+      <summary>How scoring works</summary>
+      <p>Each score starts from a base value for the business category — marketing agencies and logistics score higher than a generic office, for example — then adds points for a listed website, phone number, street address, and chain/brand tag: signals that a lead is real, reachable, and has some scale. There's no revenue, employee count, or review data behind this; free map data doesn't include it. Coverage also depends on how well an area is mapped — expect more results in major cities than small towns. Treat the ranking as a shortlist to investigate, not a verdict.</p>
+    </details>
+
+    <div class="results" id="results">
+      <div class="empty-state">No scan yet — enter a location above and tap Scan.</div>
+    </div>
+
+    <div class="app-footer">
+      Business listings via OpenStreetMap contributors (ODbL). Location search via Nominatim. Scores are a heuristic — verify before you pitch.
+    </div>
+  </div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="sectors.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
