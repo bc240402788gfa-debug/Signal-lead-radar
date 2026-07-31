@@ -29,6 +29,8 @@ var SECTORS = [
       why:"Appointment and repeat-visit data supports scheduling and retention analysis." },
     { id:"trades_repair", label:"Trades & repair", base:58, defaultOn:true,
       why:"Job scheduling and parts/inventory data is an easy efficiency win." },
+    { id:"construction", label:"Construction", base:70, defaultOn:true,
+      why:"Project costs, timelines, and material usage are exactly the kind of data these companies rarely track systematically in-house." },
     { id:"childcare", label:"Childcare", base:61, defaultOn:true,
       why:"Enrollment and attendance data helps with staffing and capacity planning." },
     { id:"education_training", label:"Education & training", base:56, defaultOn:false,
@@ -45,6 +47,7 @@ var SECTORS = [
 // independent shops for categories where they'd otherwise flood the results.
 var TAGMAP = [
     ["office","estate_agent","real_estate",false],
+    ["office","construction_company","construction",false],
     ["office","insurance","insurance_finance",false],
     ["office","financial","insurance_finance",false],
     ["office","accountant","professional_services",false],
@@ -195,6 +198,7 @@ var TAGMAP = [
     ["amenity","marketplace","retail_chain",false],
     ["amenity","car_sharing","logistics_transport",false],
     ["amenity","taxi","logistics_transport",false],
+    ["craft","builder","construction",false],
     ["craft","electrician","trades_repair",false],
     ["craft","plumber","trades_repair",false],
     ["craft","carpenter","trades_repair",false],
