@@ -45,7 +45,8 @@
     border-radius:8px; padding:11px 13px; font-size:14px;
   }
   .field::placeholder{ color:var(--muted); }
-  #locationInput{ flex:1 1 220px; }
+  .location-wrap{ position:relative; flex:1 1 220px; }
+  #locationInput{ width:100%; }
   #radiusSelect{ flex:0 0 auto; }
   .btn-primary{
     background:var(--amber); color:#1A1206; border:none; border-radius:8px;
@@ -54,7 +55,21 @@
   .btn-primary:hover:not(:disabled){ filter:brightness(1.08); }
   .btn-primary:disabled{ opacity:0.6; cursor:default; }
 
-  .chip-row{ display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; }
+  .suggestions{
+    position:absolute; top:calc(100% + 4px); left:0; right:0; z-index:20;
+    background:var(--surface); border:1px solid var(--line); border-radius:8px;
+    max-height:260px; overflow-y:auto; box-shadow:0 8px 24px rgba(0,0,0,0.35);
+  }
+  .suggestion-item{
+    padding:9px 13px; font-size:14px; cursor:pointer; display:flex;
+    justify-content:space-between; gap:10px;
+  }
+  .suggestion-item .sug-country{ color:var(--muted); font-size:12px; }
+  .suggestion-item:hover, .suggestion-item.highlighted{ background:rgba(232,163,61,0.12); }
+
+  .chip-controls{ display:flex; gap:16px; margin-top:18px; }
+
+  .chip-row{ display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
   .chip{
     font-family:'IBM Plex Mono', monospace; font-size:12px; letter-spacing:0.3px;
     padding:6px 12px; border-radius:99px; border:1px solid var(--line);

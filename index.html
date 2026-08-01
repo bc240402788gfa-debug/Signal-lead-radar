@@ -19,7 +19,10 @@
     </div>
 
     <div class="command-bar">
-      <input id="locationInput" class="field" type="text" placeholder="City or area — e.g. Lahore, Pakistan" aria-label="Location" autocomplete="off" />
+      <div class="location-wrap">
+        <input id="locationInput" class="field" type="text" placeholder="City or area — e.g. Lahore, Pakistan" aria-label="Location" autocomplete="off" />
+        <div id="locationSuggestions" class="suggestions" hidden></div>
+      </div>
       <select id="radiusSelect" class="field" aria-label="Search radius">
         <option value="2">2 km</option>
         <option value="5">5 km</option>
@@ -31,6 +34,10 @@
       <button id="scanBtn" class="btn-primary">Scan</button>
     </div>
 
+    <div class="chip-controls">
+      <button id="selectAllBtn" class="link-btn" type="button">Select all</button>
+      <button id="clearAllBtn" class="link-btn" type="button">Clear all</button>
+    </div>
     <div class="chip-row" id="chipRow"></div>
 
     <div class="status-line" id="statusLine" aria-live="polite">
@@ -56,6 +63,7 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="sectors.js"></script>
+<script src="cities.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
