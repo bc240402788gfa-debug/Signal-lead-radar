@@ -17,6 +17,12 @@
     return 'https://' + u;
   }
 
+  function socialUrl(platform, value){
+    if(/^https?:\/\//i.test(value)) return value;
+    var handle = value.replace(/^@/, '');
+    return 'https://' + platform + '.com/' + handle;
+  }
+
   function tierOf(score){ return score>=75?'hot': score>=50?'warm':'cool'; }
   function tierColorHex(score){ return score>=75?'#E8A33D': score>=50?'#B98431':'#5C6B78'; }
 
@@ -105,6 +111,8 @@
       if(lat == null || lon == null) continue;
       var website = tags.website || tags['contact:website'] || null;
       var phone = tags.phone || tags['contact:phone'] || null;
+      var facebook = tags['contact:facebook'] || tags.facebook || null;
+      var instagram = tags['contact:instagram'] || tags.instagram || null;
       var addrParts = [tags['addr:housenumber'], tags['addr:street'], tags['addr:city']].filter(Boolean);
       var address = addrParts.length ? addrParts.join(' ') : null;
       var score = cat.base;
@@ -112,8 +120,9 @@
       if(website) score += 12;
       if(phone) score += 6;
       if(tags['addr:street']) score += 4;
+      if(facebook || instagram) score += 3;
       score = Math.max(0, Math.min(100, score));
-      map.set(keyId, { id: keyId, name: name, category: cat.label, why: cat.why, lat: lat, lon: lon, website: website, phone: phone, address: address, score: score });
+      map.set(keyId, { id: keyId, name: name, category: cat.label, why: cat.why, lat: lat, lon: lon, website: website, phone: phone, facebook: facebook, instagram: instagram, address: address, score: score });
     }
     return Array.from(map.values()).sort(function(a,b){
       if(b.score !== a.score) return b.score - a.score;
@@ -168,6 +177,8 @@
       var barsHtml = [1,2,3,4,5].map(function(n){ return '<i class="' + (n<=bars?'on':'') + '"></i>'; }).join('');
       var phoneHtml = l.phone ? '<a href="tel:' + escapeHtml(l.phone.replace(/[^\d+]/g,'')) + '">' + escapeHtml(l.phone) + '</a>' : '';
       var siteHtml = l.website ? '<a href="' + escapeHtml(normalizeUrl(l.website)) + '" target="_blank" rel="noopener">Website</a>' : '';
+      var fbHtml = l.facebook ? '<a href="' + escapeHtml(socialUrl('facebook', l.facebook)) + '" target="_blank" rel="noopener">Facebook</a>' : '';
+      var igHtml = l.instagram ? '<a href="' + escapeHtml(socialUrl('instagram', l.instagram)) + '" target="_blank" rel="noopener">Instagram</a>' : '';
       var addrHtml = l.address ? '<div class="lead-addr">' + escapeHtml(l.address) + '</div>' : '';
       row.innerHTML =
         '<div class="lead-rank">' +
@@ -181,7 +192,7 @@
         '</div>' +
         '<div class="lead-contact">' +
           '<span class="lead-score tier-' + tier + '">' + l.score + '</span>' +
-          phoneHtml + siteHtml +
+          phoneHtml + siteHtml + fbHtml + igHtml +
         '</div>';
       list.appendChild(row);
     });
@@ -198,10 +209,10 @@
   }
 
   function exportCsv(leads, meta){
-    var header = ['Rank','Name','Category','Score','Address','Phone','Website','Why'];
-    var rows = leads.map(function(l, i){ return [i+1, l.name, l.category, l.score, l.address || '', l.phone || '', l.website || '', l.why]; });
+    var header = ['Rank','Name','Category','Score','Address','Phone','Website','Facebook','Instagram','Why'];
+    var rows = leads.map(function(l, i){ return [i+1, l.name, l.category, l.score, l.address || '', l.phone || '', l.website || '', l.facebook || '', l.instagram || '', l.why]; });
     var csv = [header].concat(rows).map(function(r){ return r.map(csvEscape).join(','); }).join('\r\n');
-    var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    var blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
     var url = URL.createObjectURL(blob);
     var a = document.createElement('a');
     a.href = url;
