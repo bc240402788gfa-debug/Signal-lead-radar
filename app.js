@@ -52,6 +52,60 @@
     return ids;
   }
 
+  // --- Location suggestions: filtered entirely against the local CITIES list (cities.js),
+  // never against Nominatim -- their usage policy explicitly disallows autocomplete
+  // implemented against the live API. Actual geocoding still happens via Nominatim on Scan.
+  var suggestMatches = [];
+  var suggestHighlight = -1;
+
+  function filterCities(query){
+    var q = query.trim().toLowerCase();
+    if(q.length < 2 || typeof CITIES === 'undefined') return [];
+    var starts = [], contains = [];
+    for(var i=0; i<CITIES.length && starts.length<8; i++){
+      if(CITIES[i][0].toLowerCase().indexOf(q) === 0) starts.push(CITIES[i]);
+    }
+    for(var j=0; j<CITIES.length && (starts.length+contains.length)<8; j++){
+      if(CITIES[j][0].toLowerCase().indexOf(q) > 0) contains.push(CITIES[j]);
+    }
+    return starts.concat(contains);
+  }
+
+  function hideSuggestions(){
+    var box = document.getElementById('locationSuggestions');
+    box.hidden = true;
+    box.innerHTML = '';
+    suggestMatches = [];
+    suggestHighlight = -1;
+  }
+
+  function renderSuggestions(matches){
+    suggestMatches = matches;
+    suggestHighlight = -1;
+    var box = document.getElementById('locationSuggestions');
+    if(!matches.length){ hideSuggestions(); return; }
+    box.innerHTML = matches.map(function(c, i){
+      var country = (typeof CITY_COUNTRIES !== 'undefined' && CITY_COUNTRIES[c[1]]) || c[1];
+      return '<div class="suggestion-item" data-index="' + i + '">' +
+        '<span>' + escapeHtml(c[0]) + '</span>' +
+        '<span class="sug-country">' + escapeHtml(country) + '</span>' +
+      '</div>';
+    }).join('');
+    box.hidden = false;
+  }
+
+  function updateSuggestHighlight(){
+    document.querySelectorAll('#locationSuggestions .suggestion-item').forEach(function(el, i){
+      el.classList.toggle('highlighted', i === suggestHighlight);
+    });
+  }
+
+  function selectCity(c){
+    var country = (typeof CITY_COUNTRIES !== 'undefined' && CITY_COUNTRIES[c[1]]) || c[1];
+    document.getElementById('locationInput').value = c[0] + ', ' + country;
+    hideSuggestions();
+  }
+
   function buildOverpassQuery(lat, lon, radiusM, activeIds){
     var tagRows = TAGMAP.filter(function(t){ return activeIds.has(t[2]); });
     var clauses = tagRows.map(function(t){
@@ -286,9 +340,58 @@
 
   renderChips();
   document.getElementById('scanBtn').addEventListener('click', runScan);
-  document.getElementById('locationInput').addEventListener('keydown', function(e){
-    if(e.key === 'Enter'){ e.preventDefault(); runScan(); }
+
+  var locationInputEl = document.getElementById('locationInput');
+  locationInputEl.addEventListener('input', function(){
+    renderSuggestions(filterCities(locationInputEl.value));
   });
+  locationInputEl.addEventListener('keydown', function(e){
+    if(!suggestMatches.length){
+      if(e.key === 'Enter'){ e.preventDefault(); runScan(); }
+      return;
+    }
+    if(e.key === 'ArrowDown'){
+      e.preventDefault();
+      suggestHighlight = Math.min(suggestHighlight + 1, suggestMatches.length - 1);
+      updateSuggestHighlight();
+    } else if(e.key === 'ArrowUp'){
+      e.preventDefault();
+      suggestHighlight = Math.max(suggestHighlight - 1, -1);
+      updateSuggestHighlight();
+    } else if(e.key === 'Enter'){
+      e.preventDefault();
+      if(suggestHighlight >= 0){
+        selectCity(suggestMatches[suggestHighlight]);
+      } else {
+        hideSuggestions();
+        runScan();
+      }
+    } else if(e.key === 'Escape'){
+      hideSuggestions();
+    }
+  });
+  document.getElementById('locationSuggestions').addEventListener('click', function(e){
+    var item = e.target.closest('.suggestion-item');
+    if(!item) return;
+    selectCity(suggestMatches[parseInt(item.dataset.index, 10)]);
+  });
+  document.addEventListener('click', function(e){
+    if(!e.target.closest('.location-wrap')) hideSuggestions();
+  });
+
+  document.getElementById('selectAllBtn').addEventListener('click', function(){
+    document.querySelectorAll('.chip').forEach(function(chip){
+      chip.classList.add('active');
+      chip.setAttribute('aria-pressed', 'true');
+    });
+  });
+  document.getElementById('clearAllBtn').addEventListener('click', function(){
+    document.querySelectorAll('.chip').forEach(function(chip){
+      chip.classList.remove('active');
+      chip.setAttribute('aria-pressed', 'false');
+    });
+  });
+
   document.getElementById('exportBtn').addEventListener('click', function(){
     if(lastLeads.length) exportCsv(lastLeads, lastMeta);
   });
