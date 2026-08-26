@@ -5,6 +5,8 @@
   var currentController = null;
   var lastLeads = [];
   var lastMeta = null;
+  var STATUS_KEY = 'blazeup_lead_status_v1';
+  var statusFilter = 'all';
 
   function escapeHtml(str){
     return String(str).replace(/[&<>"']/g, function(s){
@@ -24,7 +26,28 @@
   }
 
   function tierOf(score){ return score>=75?'hot': score>=50?'warm':'cool'; }
-  function tierColorHex(score){ return score>=75?'#E8A33D': score>=50?'#B98431':'#5C6B78'; }
+  function tierColorHex(score){ return score>=75?'#FF5A36': score>=50?'#C2461F':'#5C6B78'; }
+
+  // --- Outreach status persistence (per-browser, keyed by OSM element id) ---
+  function loadStatusMap(){
+    try {
+      var raw = localStorage.getItem(STATUS_KEY);
+      return raw ? JSON.parse(raw) : {};
+    } catch(e){ return {}; }
+  }
+  function saveStatusMap(m){
+    try { localStorage.setItem(STATUS_KEY, JSON.stringify(m)); } catch(e){}
+  }
+  function getStatus(id){
+    var m = loadStatusMap();
+    return m[id] || 'new';
+  }
+  function setStatus(id, status){
+    var m = loadStatusMap();
+    if(status === 'new') delete m[id]; else m[id] = status;
+    saveStatusMap(m);
+  }
+  var STATUS_LABELS = { new: 'New', contacted: 'Contacted', replied: 'Replied', client: 'Client' };
 
   function renderChips(){
     var row = document.getElementById('chipRow');
@@ -169,19 +192,32 @@
       var instagram = tags['contact:instagram'] || tags.instagram || null;
       var addrParts = [tags['addr:housenumber'], tags['addr:street'], tags['addr:city']].filter(Boolean);
       var address = addrParts.length ? addrParts.join(' ') : null;
+
+      // Scoring tuned for a social media / content agency: a business already active
+      // on social (but likely posting inconsistently or with weak content) is a HOTTER
+      // lead than one with no social presence at all -- they've proven they see the
+      // value, they just need it done well. A website with no social presence is a
+      // weaker signal here than it would be for a data/analytics pitch.
+      var hasSocial = !!(facebook || instagram);
+      var socialCount = (facebook?1:0) + (instagram?1:0);
       var score = cat.base;
-      if(tags.brand) score += 8;
-      if(website) score += 12;
-      if(phone) score += 6;
-      if(tags['addr:street']) score += 4;
-      if(facebook || instagram) score += 3;
+      if(tags.brand) score += 5;
+      if(hasSocial) score += 14;
+      if(socialCount === 2) score += 4; // active on both -- clearly invested, good upsell target
+      if(phone) score += 5;
+      if(tags['addr:street']) score += 3;
+      if(website && !hasSocial) score += 4; // has a web presence but no social -- still worth a look
       score = Math.max(0, Math.min(100, score));
-      map.set(keyId, { id: keyId, name: name, category: cat.label, why: cat.why, lat: lat, lon: lon, website: website, phone: phone, facebook: facebook, instagram: instagram, address: address, score: score });
+
+      map.set(keyId, {
+        id: keyId, name: name, category: cat.label, why: cat.why, lat: lat, lon: lon,
+        website: website, phone: phone, facebook: facebook, instagram: instagram,
+        address: address, score: score, hasSocial: hasSocial, socialCount: socialCount
+      });
     }
     return Array.from(map.values()).sort(function(a,b){
       if(b.score !== a.score) return b.score - a.score;
-      var aw = a.website ? 1 : 0, bw = b.website ? 1 : 0;
-      if(bw !== aw) return bw - aw;
+      if(b.hasSocial !== a.hasSocial) return (b.hasSocial?1:0) - (a.hasSocial?1:0);
       return a.name.localeCompare(b.name);
     });
   }
@@ -215,17 +251,41 @@
     });
   }
 
+  function applyStatusFilter(leads){
+    if(statusFilter === 'all') return leads;
+    return leads.filter(function(l){ return getStatus(l.id) === statusFilter; });
+  }
+
+  function renderStatusFilterBar(){
+    var bar = document.getElementById('statusFilterBar');
+    if(!bar) return;
+    var counts = { all: lastLeads.length, new: 0, contacted: 0, replied: 0, client: 0 };
+    lastLeads.forEach(function(l){ counts[getStatus(l.id)]++; });
+    bar.innerHTML = ['all','new','contacted','replied','client'].map(function(key){
+      var label = key === 'all' ? 'All' : STATUS_LABELS[key];
+      return '<button type="button" class="status-filter-chip' + (statusFilter===key?' active':'') + '" data-status="' + key + '">' +
+        label + ' <span class="sf-count">' + counts[key] + '</span></button>';
+    }).join('');
+  }
+
   function renderResults(leads, meta){
     var list = document.getElementById('results');
     list.innerHTML = '';
+    renderStatusFilterBar();
+    var visible = applyStatusFilter(leads);
     if(!leads.length){
       list.innerHTML = '<div class="empty-state">NO SIGNAL — 0 matches within ' + meta.radiusKm + 'km of ' + escapeHtml(meta.label) + '. Try a larger radius or more categories.</div>';
       return;
     }
-    var top = leads.slice(0, 60);
+    if(!visible.length){
+      list.innerHTML = '<div class="empty-state">No leads with status "' + escapeHtml(STATUS_LABELS[statusFilter] || statusFilter) + '" yet.</div>';
+      return;
+    }
+    var top = visible.slice(0, 60);
     top.forEach(function(l, i){
       var bars = Math.max(1, Math.min(5, Math.ceil(l.score / 20)));
       var tier = tierOf(l.score);
+      var status = getStatus(l.id);
       var row = document.createElement('div');
       row.className = 'lead-row';
       var barsHtml = [1,2,3,4,5].map(function(n){ return '<i class="' + (n<=bars?'on':'') + '"></i>'; }).join('');
@@ -234,6 +294,12 @@
       var fbHtml = l.facebook ? '<a href="' + escapeHtml(socialUrl('facebook', l.facebook)) + '" target="_blank" rel="noopener">Facebook</a>' : '';
       var igHtml = l.instagram ? '<a href="' + escapeHtml(socialUrl('instagram', l.instagram)) + '" target="_blank" rel="noopener">Instagram</a>' : '';
       var addrHtml = l.address ? '<div class="lead-addr">' + escapeHtml(l.address) + '</div>' : '';
+      var socialBadge = l.hasSocial
+        ? '<span class="social-badge has-social">' + (l.socialCount===2 ? 'FB + IG' : (l.facebook ? 'Has Facebook' : 'Has Instagram')) + '</span>'
+        : '<span class="social-badge no-social">No social found</span>';
+      var statusOptions = ['new','contacted','replied','client'].map(function(k){
+        return '<option value="' + k + '"' + (k===status?' selected':'') + '>' + STATUS_LABELS[k] + '</option>';
+      }).join('');
       row.innerHTML =
         '<div class="lead-rank">' +
           '<span class="rank-num">' + (i+1) + '</span>' +
@@ -242,13 +308,24 @@
         '<div class="lead-main">' +
           '<div class="lead-name">' + escapeHtml(l.name) + '<span class="lead-cat">' + escapeHtml(l.category) + '</span></div>' +
           addrHtml +
+          '<div class="lead-badges">' + socialBadge + '</div>' +
           '<div class="lead-why">' + escapeHtml(l.why) + '</div>' +
         '</div>' +
         '<div class="lead-contact">' +
           '<span class="lead-score tier-' + tier + '">' + l.score + '</span>' +
           phoneHtml + siteHtml + fbHtml + igHtml +
+          '<select class="status-select status-' + status + '" data-lead-id="' + escapeHtml(l.id) + '">' + statusOptions + '</select>' +
         '</div>';
       list.appendChild(row);
+    });
+
+    list.querySelectorAll('.status-select').forEach(function(sel){
+      sel.addEventListener('change', function(){
+        var id = sel.dataset.leadId;
+        setStatus(id, sel.value);
+        sel.className = 'status-select status-' + sel.value;
+        renderStatusFilterBar();
+      });
     });
   }
 
@@ -263,14 +340,17 @@
   }
 
   function exportCsv(leads, meta){
-    var header = ['Rank','Name','Category','Score','Address','Phone','Website','Facebook','Instagram','Why'];
-    var rows = leads.map(function(l, i){ return [i+1, l.name, l.category, l.score, l.address || '', l.phone || '', l.website || '', l.facebook || '', l.instagram || '', l.why]; });
+    var header = ['Rank','Name','Category','Score','Social Presence','Status','Address','Phone','Website','Facebook','Instagram','Why'];
+    var rows = leads.map(function(l, i){
+      return [i+1, l.name, l.category, l.score, l.hasSocial ? 'Yes' : 'No', STATUS_LABELS[getStatus(l.id)],
+        l.address || '', l.phone || '', l.website || '', l.facebook || '', l.instagram || '', l.why];
+    });
     var csv = [header].concat(rows).map(function(r){ return r.map(csvEscape).join(','); }).join('\r\n');
     var blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
     var url = URL.createObjectURL(blob);
     var a = document.createElement('a');
     a.href = url;
-    a.download = 'leads-' + slug(meta.label) + '.csv';
+    a.download = 'blazeup-leads-' + slug(meta.label) + '.csv';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -303,6 +383,7 @@
 
     setLoading(true);
     showStatus('Scanning ' + locInput + '…', 'ok');
+    statusFilter = 'all';
 
     try {
       var geo = await geocode(locInput, controller.signal);
@@ -395,4 +476,14 @@
   document.getElementById('exportBtn').addEventListener('click', function(){
     if(lastLeads.length) exportCsv(lastLeads, lastMeta);
   });
+
+  var statusFilterBarEl = document.getElementById('statusFilterBar');
+  if(statusFilterBarEl){
+    statusFilterBarEl.addEventListener('click', function(e){
+      var chip = e.target.closest('.status-filter-chip');
+      if(!chip) return;
+      statusFilter = chip.dataset.status;
+      renderResults(lastLeads, lastMeta);
+    });
+  }
 })();
