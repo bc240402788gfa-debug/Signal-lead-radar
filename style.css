@@ -1,13 +1,13 @@
   :root{
-    --ink:#0F1720;
-    --surface:#16212C;
-    --line:#2A3844;
-    --text:#E8EDF2;
-    --muted:#8B9AA8;
-    --amber:#E8A33D;
-    --amber-dim:#B98431;
-    --cold:#5C6B78;
-    --teal:#4FA8A0;
+    --ink:#120C0A;
+    --surface:#1D1512;
+    --line:#3A2A22;
+    --text:#F5EDE7;
+    --muted:#A6938A;
+    --amber:#FF5A36;
+    --amber-dim:#C2461F;
+    --cold:#6B5A50;
+    --teal:#FFB020;
     --danger:#E0654F;
     --radius:10px;
   }
@@ -126,6 +126,33 @@
   }
   .lead-addr{ color:var(--muted); font-size:13px; margin-top:3px; }
   .lead-why{ color:var(--muted); font-size:13px; margin-top:7px; line-height:1.45; }
+  .lead-badges{ margin-top:7px; }
+
+  .social-badge{
+    display:inline-block; font-family:'IBM Plex Mono', monospace; font-size:11px;
+    padding:2px 9px; border-radius:99px; border:1px solid var(--line);
+  }
+  .social-badge.has-social{ color:var(--amber); border-color:var(--amber-dim); background:rgba(255,90,54,0.1); }
+  .social-badge.no-social{ color:var(--muted); }
+
+  .status-select{
+    background:var(--surface); border:1px solid var(--line); color:var(--text);
+    border-radius:6px; padding:5px 8px; font-size:12px; font-family:'IBM Plex Mono', monospace;
+    margin-top:6px; cursor:pointer;
+  }
+  .status-select.status-new{ color:var(--muted); }
+  .status-select.status-contacted{ color:var(--teal); border-color:var(--teal); }
+  .status-select.status-replied{ color:var(--amber); border-color:var(--amber-dim); }
+  .status-select.status-client{ color:#6FCF6F; border-color:#3E8E3E; }
+
+  .status-filter-bar{ display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; }
+  .status-filter-chip{
+    font-family:'IBM Plex Mono', monospace; font-size:12px; letter-spacing:0.3px;
+    padding:6px 12px; border-radius:99px; border:1px solid var(--line);
+    color:var(--muted); background:transparent; cursor:pointer;
+  }
+  .status-filter-chip.active{ border-color:var(--amber); color:var(--amber); background:rgba(255,90,54,0.08); }
+  .status-filter-chip .sf-count{ color:inherit; opacity:0.75; }
 
   .lead-contact{ flex:none; display:flex; flex-direction:column; align-items:flex-end; gap:5px; min-width:100px; }
   .lead-score{ font-family:'IBM Plex Mono', monospace; font-weight:600; font-size:19px; }
