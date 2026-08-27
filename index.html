@@ -42,7 +42,10 @@
 
     <div class="status-line" id="statusLine" aria-live="polite">
       <span id="statusText">No scan yet.</span>
-      <button id="exportBtn" class="link-btn" disabled>Export CSV</button>
+      <span class="export-group">
+        <button id="exportBtn" class="link-btn" disabled>Export CSV</button>
+        <button id="exportXlsxBtn" class="link-btn" disabled>Export XLSX</button>
+      </span>
     </div>
 
     <div id="map"></div>
@@ -64,6 +67,7 @@
   </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="sectors.js"></script>
 <script src="cities.js"></script>
 <script src="app.js"></script>

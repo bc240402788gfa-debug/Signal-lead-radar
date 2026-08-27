@@ -339,13 +339,17 @@
     return String(s).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'').slice(0,40) || 'export';
   }
 
-  function exportCsv(leads, meta){
+  function buildExportRows(leads){
     var header = ['Rank','Name','Category','Score','Social Presence','Status','Address','Phone','Website','Facebook','Instagram','Why'];
     var rows = leads.map(function(l, i){
       return [i+1, l.name, l.category, l.score, l.hasSocial ? 'Yes' : 'No', STATUS_LABELS[getStatus(l.id)],
         l.address || '', l.phone || '', l.website || '', l.facebook || '', l.instagram || '', l.why];
     });
-    var csv = [header].concat(rows).map(function(r){ return r.map(csvEscape).join(','); }).join('\r\n');
+    return [header].concat(rows);
+  }
+
+  function exportCsv(leads, meta){
+    var csv = buildExportRows(leads).map(function(r){ return r.map(csvEscape).join(','); }).join('\r\n');
     var blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
     var url = URL.createObjectURL(blob);
     var a = document.createElement('a');
@@ -355,6 +359,22 @@
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+  }
+
+  function exportXlsx(leads, meta){
+    if(typeof XLSX === 'undefined'){
+      showStatus('Export library failed to load — check your connection and try again.', 'error');
+      return;
+    }
+    var data = buildExportRows(leads);
+    var ws = XLSX.utils.aoa_to_sheet(data);
+    ws['!cols'] = [
+      { wch: 5 }, { wch: 24 }, { wch: 22 }, { wch: 7 }, { wch: 14 }, { wch: 11 },
+      { wch: 30 }, { wch: 16 }, { wch: 26 }, { wch: 22 }, { wch: 22 }, { wch: 60 }
+    ];
+    var wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Leads');
+    XLSX.writeFile(wb, 'blazeup-leads-' + slug(meta.label) + '.xlsx');
   }
 
   function setLoading(isLoading){
@@ -402,6 +422,7 @@
       renderResults(leads, lastMeta);
       showStatus(leads.length + ' match' + (leads.length === 1 ? '' : 'es') + ' · within ' + radiusKm + 'km of ' + geo.label, leads.length ? 'ok' : 'error');
       document.getElementById('exportBtn').disabled = leads.length === 0;
+      document.getElementById('exportXlsxBtn').disabled = leads.length === 0;
     } catch(err){
       if(err && err.name === 'AbortError'){
         if(timedOut) showStatus('TIMED OUT — try a smaller radius or fewer categories.', 'error');
@@ -475,6 +496,9 @@
 
   document.getElementById('exportBtn').addEventListener('click', function(){
     if(lastLeads.length) exportCsv(lastLeads, lastMeta);
+  });
+  document.getElementById('exportXlsxBtn').addEventListener('click', function(){
+    if(lastLeads.length) exportXlsx(lastLeads, lastMeta);
   });
 
   var statusFilterBarEl = document.getElementById('statusFilterBar');

@@ -84,6 +84,7 @@
   .status-line.error #statusText{ color:var(--danger); }
   .link-btn{ background:none; border:none; color:var(--teal); font-size:13px; cursor:pointer; padding:0; }
   .link-btn:disabled{ opacity:0.5; cursor:default; }
+  .export-group{ display:flex; gap:14px; }
 
   #map{ display:none; height:280px; border-radius:var(--radius); margin-top:16px; border:1px solid var(--line); background:var(--surface); overflow:hidden; }
   @media (max-width:640px){ #map{ height:200px; } }
